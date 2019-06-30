@@ -3,6 +3,7 @@ Monopoly.allowRoll = true;
 Monopoly.moneyAtStart = 700;
 Monopoly.doubleCounter = 0;
 
+//init after DOM reloded 
 Monopoly.init = function () {
     $(document).ready(function () {
         Monopoly.adjustBoardSize();
@@ -17,7 +18,7 @@ Monopoly.start = function () {
     Monopoly.showPopup("intro")
 };
 
-
+//initinal the dice, adding click listner to each dice
 Monopoly.initDice = function () {
     $(".dice").click(function () {
         if (Monopoly.allowRoll) {
@@ -44,14 +45,14 @@ Monopoly.updatePlayersMoney = function (player, amount) {
     var playersMoney = parseInt(player.attr("data-money"));
     playersMoney -= amount;
     if (playersMoney < 0) {
-        alert("you are broke!");
+
     }
     player.attr("data-money", playersMoney);
     player.attr("title", player.attr("id") + ": $" + playersMoney);
     Monopoly.playSound("chaching");
 };
 
-
+//roll dice for and and actions for current player
 Monopoly.rollDice = function () {
     var result1 = Math.floor(Math.random() * 6) + 1;
     var result2 = Math.floor(Math.random() * 6) + 1;
@@ -61,14 +62,15 @@ Monopoly.rollDice = function () {
     if (result1 == result2) {
         Monopoly.doubleCounter++;
     }
-    else {
-        var currentPlayer = Monopoly.getCurrentPlayer();
-        Monopoly.handleAction(currentPlayer, "move", result1 + result2);
-    }
+    var currentPlayer = Monopoly.getCurrentPlayer();
+    Monopoly.handleAction(currentPlayer, "move", result1 + result2);
+
 
 };
 
-
+// move player func 
+// input: current player and steps
+// result: 
 Monopoly.movePlayer = function (player, steps) {
     Monopoly.allowRoll = false;
     var playerMovementInterval = setInterval(function () {
@@ -92,10 +94,18 @@ Monopoly.handleTurn = function () {
         Monopoly.handleBuyProperty(player, playerCell);
     } else if (playerCell.is(".property:not(.available)") && !playerCell.hasClass(player.attr("id"))) {
         Monopoly.handlePayRent(player, playerCell);
-    } else if (playerCell.is(".go-to-jail")) {
+
+    } else if (playerCell.is(".property:not(.available)") && playerCell.hasClass(player.attr("id"))) {
+        Monopoly.holdsProperty(player);
+    }
+    else if (playerCell.is(".go-to-jail")) {
         Monopoly.handleGoToJail(player);
     } else if (playerCell.is(".chance")) {
         Monopoly.handleChanceCard(player);
+
+    } else if (playerCell.is(".community")) {
+        Monopoly.handleCommunityCard(player);
+
     } else if (playerCell.is(".community")) {
         Monopoly.handleCommunityCard(player);
     } else {
@@ -103,16 +113,28 @@ Monopoly.handleTurn = function () {
     }
 }
 
+Monopoly.holdsProperty = function (player) {
+    player.addClass("onOwnProperty");
+    setTimeout(() => {
+        player.removeClass("onOwnProperty");
+        Monopoly.setNextPlayerTurn();
+    }, 2000);
+}
+
 Monopoly.setNextPlayerTurn = function () {
     var currentPlayerTurn = Monopoly.getCurrentPlayer();
     var playerId = parseInt(currentPlayerTurn.attr("id").replace("player", ""));
     var nextPlayerId = playerId + 1;
+    if (Monopoly.doubleCounter > 0 && !currentPlayerTurn.is('.jailed')) {
+        var nextPlayerId = playerId;
+    }
+    else {
+        var nextPlayerId = playerId + 1;
+    }
     if (nextPlayerId > $(".player").length) {
         nextPlayerId = 1;
     }
-    if (Monopoly.doubleCounter > 1) {
-        nextPlayerId = playerId;
-    }
+
     currentPlayerTurn.removeClass("current-turn");
     var nextPlayer = $(".player#player" + nextPlayerId);
     nextPlayer.addClass("current-turn");
@@ -191,9 +213,22 @@ Monopoly.handleChanceCard = function (player) {
 };
 
 Monopoly.handleCommunityCard = function (player) {
-    //TODO: implement this method
-    alert("not implemented yet!")
-    Monopoly.setNextPlayerTurn();
+    var popup = Monopoly.getPopup("chance");
+    popup.find(".popup-content").addClass("loading-state");
+    $.get("https://itcmonopoly.appspot.com/get_random_community_card", function (chanceJson) {
+        popup.find(".popup-content #text-placeholder").text(chanceJson["content"]);
+        popup.find(".popup-title").text(chanceJson["title"]);
+        popup.find(".popup-content").removeClass("loading-state");
+        popup.find(".popup-content button").attr("data-action", chanceJson["action"]).attr("data-amount", chanceJson["amount"]);
+    }, "json");
+    popup.find("button").unbind("click").bind("click", function () {
+        var currentBtn = $(this);
+        var action = currentBtn.attr("data-action");
+        var amount = currentBtn.attr("data-amount");
+        console.log("testing the action and amount " + action + " " + amount)
+        Monopoly.handleAction(player, action, amount);
+    });
+    Monopoly.showPopup("chance");
 };
 
 

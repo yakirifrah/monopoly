@@ -66,6 +66,7 @@ img.face-sad {
 
 .board .game.cell.in-jail {
     background-image: url(../images/jail.jpg);
+
 }
 
 
@@ -217,6 +218,18 @@ img.face-sad {
 
 .player.current-turn {
     background-image: url(../images/crown.png);
+    background-size: contain;
+    background-position: center;
+}
+
+.player.onOwnProperty {
+    background-image: url(../images/happy-emoji.jpg);
+    background-size: contain;
+    background-position: center;
+}
+
+.player.jailed {
+    background-image: url(../images/sad_emoji.png);
     background-size: contain;
     background-position: center;
 }
